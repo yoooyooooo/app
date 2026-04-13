@@ -141,30 +141,71 @@ with tab1:
 
 # --- 在 Tab 2: 成就阶梯 中替换 ---
 with tab2:
-    # --- 1. 连登系统 ---
-    st.markdown("### 📅 进化序列 (连登奖励)")
-    # 算法解释
-    st.caption("规则：每日连登奖励 = 天数 × 2；逢 7 的倍数（周庆）奖励 = 天数 × 5")
+    st.markdown("### 📅 七日循環進化序列")
     
-    if 'claimed_streaks' not in st.session_state:
-        st.session_state.claimed_streaks = []
+    # --- 1. 核心數據計算 ---
+    # 計算當前在 7 天週期中的第幾天 (1-7)
+    day_in_cycle = ((st.session_state.streak - 1) % 7) + 1
+    cycle_count = (st.session_state.streak - 1) // 7
+    
+    # 定義獎勵梯度
+    cycle_rewards = {
+        1: 2, 2: 2, 3: 8, 
+        4: 3, 5: 15, 6: 5, 
+        7: 30  # 周慶大賞
+    }
+    
+    # --- 2. 七日進度條視覺化 ---
+    st.write(f"🌀 當前週期：第 {cycle_count + 1} 輪")
+    
+    # 整體進度條 (例如：第3天 = 3/7 = 42%)
+    progress_value = day_in_cycle / 7
+    st.progress(progress_value)
+    
+    # 獎勵預覽面板
+    cols = st.columns(7)
+    for i in range(1, 8):
+        with cols[i-1]:
+            # 根據狀態顯示不同樣式
+            reward_amt = cycle_rewards[i]
+            if i < day_in_cycle:
+                st.markdown(f"<div style='text-align:center; color:#888;'>D{i}<br>✅<br><small>{reward_amt}XP</small></div>", unsafe_allow_html=True)
+            elif i == day_in_cycle:
+                st.markdown(f"<div style='text-align:center; color:#3498db; font-weight:bold;'>D{i}<br>📍<br><small>{reward_amt}XP</small></div>", unsafe_allow_html=True)
+            else:
+                # 特別加強 Day 7 的視覺效果
+                label = "🎁" if i < 7 else "👑"
+                st.markdown(f<div style='text-align:center;'>D{i}<br>{label}<br><small>{reward_amt}XP</small></div>", unsafe_allow_html=True)
 
-    c_s1, c_s2 = st.columns([3, 1])
-    c_s1.write(f"当前连续接入：`{st.session_state.streak}` 天")
-    
-    # 领取逻辑
-    can_claim_streak = st.session_state.streak not in st.session_state.claimed_streaks
-    if can_claim_streak:
-        is_week = st.session_state.streak % 7 == 0
-        bonus = st.session_state.streak * (5 if is_week else 2)
-        if c_s2.button(f"领奖励 +{bonus}", key="str_btn", type="primary", use_container_width=True):
-            st.session_state.xp += bonus
-            st.session_state.claimed_streaks.append(st.session_state.streak)
+    st.write("") # 留白
+
+    # --- 3. 領取按鈕與特效 ---
+    claim_key = f"cycle_{cycle_count}_day_{day_in_cycle}"
+    if 'cycle_claimed' not in st.session_state:
+        st.session_state.cycle_claimed = []
+
+    if claim_key not in st.session_state.cycle_claimed:
+        current_bonus = cycle_rewards[day_in_cycle]
+        btn_label = f"🚀 領取 Day {day_in_cycle} 獎勵：+{current_bonus} XP"
+        
+        # 如果是第七天，按鈕顏色加深
+        if st.button(btn_label, type="primary" if day_in_cycle == 7 else "secondary", use_container_width=True):
+            st.session_state.xp += current_bonus
+            st.session_state.cycle_claimed.append(claim_key)
+            
+            # --- 特效觸發 ---
+            if day_in_cycle == 7:
+                st.balloons() # 第七天放氣球
+                st.toast("🎉 恭喜完成一個進化週期！全系統獎勵已發放。", icon="🏆")
+            else:
+                st.toast(f"進度推進！獲得 {current_bonus} XP", icon="⚡")
+            
             st.rerun()
     else:
-        c_s2.button("今日已领", disabled=True, use_container_width=True)
+        st.button(f"📅 Day {day_in_cycle} 已領取 (明天再來！)", disabled=True, use_container_width=True)
 
     st.markdown("---")
+    # 下方繼續接你的技能專精系統 (LV 系統)...
 
     # --- 2. 任务熟练度等级系统 ---
     st.markdown("### 🛠️ 技能专精系统")
