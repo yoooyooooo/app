@@ -246,6 +246,16 @@ with tab2:
                 col_btn.button(f"LV.{current_lv} 已达成", disabled=True, key=f"lv_done_{t_name}", use_container_width=True)
         st.write("") # 间距
 with tab3:
+    # --- 增加反馈显示区 ---
+    # 初始化兑换反馈缓存
+    if 'redeem_msg' not in st.session_state:
+        st.session_state.redeem_msg = None
+
+    # 如果有兑换消息，显示并清空它
+    if st.session_state.redeem_msg:
+        st.success(st.session_state.redeem_msg)
+        st.session_state.redeem_msg = None  # 显示一次后清空，防止一直挂在那
+
     st.markdown("### 🎫 微奖励")
     c1, c2 = st.columns(2)
     for i, (item, cost) in enumerate(CHEAP_REWARDS.items()):
@@ -253,7 +263,9 @@ with tab3:
         if col.button(f"{item} ({cost}XP)", key=f"c_{i}", use_container_width=True):
             if st.session_state.xp >= cost:
                 st.session_state.xp -= cost
-                st.toast(f"兑换成功：{item}", icon="✅")
+                # 记录反馈消息
+                st.session_state.redeem_msg = f"✅ 兑换成功：已解锁【{item}】，快去享受吧！"
+                st.toast(f"兑换成功：{item}", icon="🎁")
                 st.rerun()
             else:
                 st.error("余额不足")
@@ -267,10 +279,12 @@ with tab3:
             if dice < 0.75: # 小奖
                 p_name = random.choice(list(CHEAP_REWARDS.keys()))
                 st.session_state.last_draw_res = ("info", f"🍃 抽取结果：【小奖 - {p_name}】")
+                st.toast(f"中奖了：{p_name}")
             elif dice < 0.85: # 大奖
                 p_name = random.choice(list(BIG_REWARDS.keys()))
                 st.balloons()
                 st.session_state.last_draw_res = ("success", f"🔥 抽取结果：【大奖 - {p_name}！】")
+                st.toast("🏆 抽到大奖了！", icon="👑")
             elif dice < 0.95: # 自由发挥
                 st.session_state.last_draw_res = ("warning", "✨ 自由发挥：去做一件让你快乐的随机小事吧！")
             else: # 轮空
@@ -292,6 +306,7 @@ with tab3:
             if st.button(f"购入 {item} ({cost}XP)", key=f"big_{item}", use_container_width=True):
                 if st.session_state.xp >= cost:
                     st.session_state.xp -= cost
+                    st.session_state.redeem_msg = f"🏆 顶级兑换成功：【{item}】已解锁，英雄请受用！"
                     st.toast(f"解锁大奖：{item}！", icon="🏆")
                     st.rerun()
                 else:
