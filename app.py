@@ -141,55 +141,69 @@ with tab1:
 
 # --- 在 Tab 2: 成就阶梯 中替换 ---
 with tab2:
-    # --- 1. 动态连登算法 ---
+    # --- 1. 连登系统 ---
     st.markdown("### 📅 进化序列 (连登奖励)")
-    st.write(f"当前连登：`{st.session_state.streak}` 天")
+    # 算法解释
+    st.caption("规则：每日连登奖励 = 天数 × 2；逢 7 的倍数（周庆）奖励 = 天数 × 5")
     
-    # 定义一个简单的算法：每 7 天为一个阶段
-    # 只要是没领过的天数，都可以领一次：奖励 = 天数 * 2
     if 'claimed_streaks' not in st.session_state:
         st.session_state.claimed_streaks = []
 
-    # 只要天数 > 0 且今天还没领过连登奖
-    if st.session_state.streak not in st.session_state.claimed_streaks:
-        # 逢 7 倍数大奖，否则普奖
+    c_s1, c_s2 = st.columns([3, 1])
+    c_s1.write(f"当前连续接入：`{st.session_state.streak}` 天")
+    
+    # 领取逻辑
+    can_claim_streak = st.session_state.streak not in st.session_state.claimed_streaks
+    if can_claim_streak:
         is_week = st.session_state.streak % 7 == 0
         bonus = st.session_state.streak * (5 if is_week else 2)
-        
-        if st.button(f"领取第 {st.session_state.streak} 天连登奖励：+{bonus} XP", type="primary"):
+        if c_s2.button(f"领奖励 +{bonus}", key="str_btn", type="primary", use_container_width=True):
             st.session_state.xp += bonus
             st.session_state.claimed_streaks.append(st.session_state.streak)
-            st.toast(f"坚持的力量！获得 {bonus} XP")
             st.rerun()
     else:
-        st.info("今日连登奖励已领取，明天继续保持！")
+        c_s2.button("今日已领", disabled=True, use_container_width=True)
 
     st.markdown("---")
 
-    # --- 2. 动态熟练度算法 ---
-    st.markdown("### 🛠️ 技能专精 (每10次进化一级)")
+    # --- 2. 任务熟练度等级系统 ---
+    st.markdown("### 🛠️ 技能专精系统")
+    st.info("💡 进化规则：每完成 10 次任务升一级。奖励 = 任务基础分 × (当前等级+1) × 5")
+
+    if 'claimed_levels' not in st.session_state:
+        st.session_state.claimed_levels = {}
+
     for t_name, count in st.session_state.task_counts.items():
-        # 计算当前等级：0-9次是0级，10-19是1级...
-        current_level = count // 10
+        # 计算等级
+        current_lv = count // 10
+        next_lv_count = (current_lv + 1) * 10
+        progress = (count % 10) / 10
         
-        # 记录每个任务领到了几级
-        if 'claimed_levels' not in st.session_state:
-            st.session_state.claimed_levels = {} # {任务名: 已领最高等级}
-        
-        last_level = st.session_state.claimed_levels.get(t_name, -1)
-        
-        if current_level > last_level:
-            base_score = ALL_SCORES.get(t_name, 1)
-            # 算法：等级越高，奖金越厚
-            level_reward = base_score * (current_level + 1) * 5 
+        # UI 容器
+        with st.container():
+            col_info, col_btn = st.columns([3, 1])
             
-            c1, c2 = st.columns([3, 1])
-            c1.write(f"**{t_name}** 已达成 LV.{current_level}！(累计 {count} 次)")
-            if c2.button(f"晋升奖励 +{level_reward}", key=f"lvl_{t_name}_{current_level}"):
-                st.session_state.xp += level_reward
-                st.session_state.claimed_levels[t_name] = current_level
-                st.success(f"{t_name} 进化！获得 {level_reward} XP")
-                st.rerun()
+            # 左侧：等级显示与进度条
+            with col_info:
+                st.write(f"**{t_name}** | `LV.{current_lv}`")
+                st.progress(progress)
+                st.caption(f"进度：{count % 10} / 10 (距下一级还需 {10 - (count % 10)} 次)")
+            
+            # 右侧：领取逻辑
+            last_claimed = st.session_state.claimed_levels.get(t_name, -1)
+            
+            if current_lv > last_claimed:
+                # 有等级可以领取
+                base_score = ALL_SCORES.get(t_name, 1)
+                reward = base_score * (current_lv + 1) * 5
+                if col_btn.button(f"晋升奖励 +{reward}", key=f"lv_up_{t_name}_{current_lv}", use_container_width=True):
+                    st.session_state.xp += reward
+                    st.session_state.claimed_levels[t_name] = current_lv
+                    st.rerun()
+            else:
+                # 已领取或未达成
+                col_btn.button(f"LV.{current_lv} 已达成", disabled=True, key=f"lv_done_{t_name}", use_container_width=True)
+        st.write("") # 间距
 with tab3:
     st.markdown("### 🎫 微奖励")
     c1, c2 = st.columns(2)
