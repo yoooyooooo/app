@@ -175,7 +175,7 @@ with tab2:
             else:
                 # 特別加強 Day 7 的視覺效果
                 label = "🎁" if i < 7 else "👑"
-                st.markdown(f<div style='text-align:center;'>D{i}<br>{label}<br><small>{reward_amt}XP</small></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align:center;'>D{i}<br>{label}<br><small>{reward_amt}XP</small></div>", unsafe_allow_html=True)
 
     st.write("") # 留白
 
