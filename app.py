@@ -160,13 +160,52 @@ with tab2:
                 else:
                     col_b.button(f"+{reward}", disabled=True, key=f"l_{t_name}", use_container_width=True)
 
-# --- Tab 3: 商店中心 ---
+# --- Tab 3: 秘密商店 ---
 with tab3:
-    st.markdown("### 🎫 微奖励")
+    st.markdown("### 🎫 微奖励 (小确幸)")
     c1, c2 = st.columns(2)
     for i, (item, cost) in enumerate(CHEAP_REWARDS.items()):
         col = c1 if i % 2 == 0 else c2
         if col.button(f"{item} ({cost}XP)", key=f"c_{i}", use_container_width=True):
             if st.session_state.xp >= cost:
-                st.session_state.xp -= cost; st.success(f"兑换成功：{item}"); st.rerun()
-    # (抽奖与大奖逻辑保持不变...)
+                st.session_state.xp -= cost
+                st.toast(f"兑换成功：{item}！祝享受愉快。", icon="✅")
+                st.rerun()
+            else:
+                st.error("余额不足")
+
+    st.markdown("---")
+    st.markdown("### 🎰 混沌抽奖 (20 XP)")
+    if st.button("🧧 消耗 20 XP 启动概率脉冲", use_container_width=True):
+        if st.session_state.xp >= 20:
+            st.session_state.xp -= 20
+            dice = random.random()
+            # 概率: 大奖 10% | 小奖 75% | 自由发挥 10% | 轮空 5%
+            if dice < 0.75:
+                res = random.choice(list(CHEAP_REWARDS.keys()))
+                st.info(f"🍃 抽取结果：【小奖 - {res}】")
+                st.toast(f"中奖反馈：获得 {res}", icon="✔️")
+            elif dice < 0.85:
+                res = random.choice(list(BIG_REWARDS.keys()))
+                st.balloons()
+                st.success(f"🔥 抽取结果：【大奖 - {res}！】")
+                st.toast(f"极稀有奖项已解锁！", icon="👑")
+            elif dice < 0.95:
+                st.warning("✨ 自由发挥：去做一件让你快乐的随机小事吧！")
+            else:
+                st.error("🕸️ 轮空：未命中奖励信号。")
+            st.rerun()
+        else:
+            st.error("XP 不足，无法抽奖")
+
+    st.markdown("---")
+    with st.expander("🏛️ 秘密宝库 (高阶保底兑换)"):
+        for item, cost in BIG_REWARDS.items():
+            if st.button(f"购入 {item} ({cost}XP)", key=f"b_{item}", use_container_width=True):
+                if st.session_state.xp >= cost:
+                    st.session_state.xp -= cost
+                    st.toast(f"成功购入高级资产：{item}", icon="🏆")
+                    st.success(f"已解锁：{item}")
+                    st.rerun()
+                else:
+                    st.error("QP 余额不足")
