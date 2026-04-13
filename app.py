@@ -4,158 +4,137 @@ import time
 from datetime import datetime
 
 # --- 页面设置 ---
-st.set_page_config(page_title="VibeQuest: 进化终端", page_icon="💊", layout="centered")
+st.set_page_config(page_title="VibeQuest: 进化终端", page_icon="💊", layout="wide") # 设为宽屏模式
 
-# --- 样式美化：金色进度条 ---
-if 'daily_xp' in st.session_state and st.session_state.daily_xp >= 10:
-    # 当达到10分时，通过CSS把进度条变成金色并加一点闪烁效果
-    st.markdown("""
-        <style>
-            .stProgress > div > div > div > div {
-                background-color: #FFD700;
-                box-shadow: 0 0 10px #FFD700;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+# --- 样式美化：精简标题与金色进度条 ---
+st.markdown("""
+    <style>
+        .main .block-container { padding-top: 1rem; }
+        h1 { font-size: 1.5rem !important; }
+        h3 { font-size: 1.1rem !important; margin-bottom: 0.5rem !important; }
+        .stProgress > div > div > div > div {
+            background-color: #FFD700;
+            box-shadow: 0 0 10px #FFD700;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-# --- 任务库定义 (在这里修改你的任务) ---
+# --- 任务库定义 ---
 ALL_RANDOM_TASKS = [
-    ("吃一个水果", 1), ("做5个深呼吸", 1), ("站起来拉伸", 1),
-    ("丢掉3件垃圾", 1), ("看窗外30秒", 1), ("擦一下手机屏幕", 1),
-    ("翻开书看1页", 1), ("听一首新歌", 1), ("给老友点赞", 1),
-    ("洗个脸清醒下", 1), ("记录一句心情", 1), ("手冲一杯咖啡", 1),
-    ("听英语博客", 2), ("散步20分钟", 2), ("整理代码逻辑", 3),
-    ("推动商业计划", 3), ("学数学1小时", 3), ("冥想10分钟", 2)
+    ("吃水果", 1), ("5个深呼吸", 1), ("拉伸", 1), ("整理桌面", 1), 
+    ("看窗外30s", 1), ("擦屏幕", 1), ("刷牙", 2), ("服维他命", 1), 
+    ("找人聊天", 1), ("洗脸清醒", 1), ("科普视频", 1), ("摄入兴奋剂", 1),
+    ("购入刚需", 2), ("听英语博客", 2), ("散步30min", 2), ("洗澡/理床", 3),
+    ("推动商业计划", 3), ("学数学2h", 3), ("吃顿好饭", 2), ("冥想10min", 2)
 ]
 
+# --- 奖励库定义 ---
+SMALL_REWARDS = ["喝一杯冰可乐", "听一首喜欢的歌", "休息5分钟", "玩手机10分钟"]
+BIG_REWARDS = ["顶级烹饪大餐", "专业全身按摩", "微醺酒精时光", "参加沙龙聚会", "买一本实体书", "无罪恶游戏3h"]
+
 # --- 数据初始化 ---
-if 'xp' not in st.session_state:
-    st.session_state.xp = 0
-if 'daily_xp' not in st.session_state:
-    st.session_state.daily_xp = 0
-if 'done_tasks' not in st.session_state:
-    st.session_state.done_tasks = []
-if 'random_pool' not in st.session_state:
-    # 初始随机抽 5 个任务
-    st.session_state.random_pool = random.sample(ALL_RANDOM_TASKS, 5)
+if 'xp' not in st.session_state: st.session_state.xp = 0
+if 'daily_xp' not in st.session_state: st.session_state.daily_xp = 0
+if 'done_tasks' not in st.session_state: st.session_state.done_tasks = []
+if 'task_counts' not in st.session_state: st.session_state.task_counts = {}
+if 'random_pool' not in st.session_state: st.session_state.random_pool = random.sample(ALL_RANDOM_TASKS, 5)
 
-# --- 每日重置逻辑 (简单模拟) ---
+# --- 每日重置逻辑 ---
 today = datetime.now().strftime('%Y-%m-%d')
-if 'last_date' not in st.session_state:
-    st.session_state.last_date = today
-
+if 'last_date' not in st.session_state: st.session_state.last_date = today
 if st.session_state.last_date != today:
-    st.session_state.daily_xp = 0
-    st.session_state.done_tasks = []
+    st.session_state.daily_xp, st.session_state.done_tasks = 0, []
     st.session_state.random_pool = random.sample(ALL_RANDOM_TASKS, 5)
-    st.session_state.last_date = today
-    st.session_state.logged_in = False
+    st.session_state.last_date, st.session_state.logged_in = today, False
 
-# --- 心理学：上线自动加分 ---
 if 'logged_in' not in st.session_state:
     st.session_state.xp += 1
     st.session_state.daily_xp += 1
     st.session_state.logged_in = True
-    st.toast("⚡ 系统接入：上线奖励 +1 XP", icon="🔌")
+    st.toast("⚡ 系统接入奖励 +1 XP", icon="🔌")
 
-# --- UI 界面 ---
-st.title("⚡ VIBEQUEST_OS")
-st.caption(f"STATUS: ACTIVE | {today} | TOTAL_XP: {st.session_state.xp}")
+# --- UI 顶部 ---
+col_t1, col_t2 = st.columns([2, 1])
+with col_t1:
+    st.title("⚡ VIBEQUEST_OS")
+with col_t2:
+    st.metric("TOTAL_XP", f"{st.session_state.xp} QP")
 
-# 进度条展示
-if st.session_state.daily_xp >= 10:
-    st.subheader("🎊 今日目标已达成！(GOLDEN STATUS)")
-else:
-    st.subheader(f"今日进度: {st.session_state.daily_xp} / 10 XP")
+# 进度条
+prog = min(st.session_state.daily_xp / 10, 1.0)
+st.progress(prog)
+if prog >= 1.0: st.caption("✨ GOLDEN STATUS: 今日已满级")
+else: st.caption(f"Progress: {st.session_state.daily_xp}/10 XP")
 
-st.progress(min(st.session_state.daily_xp / 10, 1.0))
-
-# --- 标签页切换 ---
 tab1, tab2, tab3 = st.tabs(["🎯 任务大厅", "🏆 成就系统", "🎁 兑换中心"])
 
 with tab1:
-    # 基础任务
-    st.markdown("### 💠 基础协议 (必修)")
-    base_tasks = {"背单词": 3, "喝一杯水": 1}
+    # 左右排版
+    left_col, right_col = st.columns(2)
     
-    for task, score in base_tasks.items():
-        col1, col2 = st.columns([3, 1])
-        is_done = task in st.session_state.done_tasks
-        if is_done:
-            col1.write(f"✅ ~~{task}~~ (+{score})")
-            col2.button("已完", key=f"base_{task}", disabled=True)
-        else:
-            col1.write(f"◻️ {task} (+{score}XP)")
-            if col2.button("执行", key=f"base_{task}"):
+    with left_col:
+        st.markdown("### 💠 基础协议")
+        base_tasks = {"背单词": 3, "喝一杯水": 1}
+        for task, score in base_tasks.items():
+            is_done = task in st.session_state.done_tasks
+            if st.button(f"{'✅' if is_done else '◻️'} {task} +{score}", key=f"b_{task}", use_container_width=True, disabled=is_done):
                 if st.session_state.daily_xp + score <= 10:
                     st.session_state.xp += score
                     st.session_state.daily_xp += score
                     st.session_state.done_tasks.append(task)
+                    st.session_state.task_counts[task] = st.session_state.task_counts.get(task, 0) + 1
                     st.rerun()
-                else:
-                    st.warning("能量将超出上限，请选择更简单的任务或休息。")
 
-    st.divider()
-
-    # 随机任务
-    col_head, col_refresh = st.columns([3, 1])
-    col_head.markdown("### 🎲 随机挑战 (选修)")
-    
-    # 刷新按钮逻辑：扣1分
-    if col_refresh.button("🔄 刷新 (-1XP)"):
-        if st.session_state.xp >= 1:
-            st.session_state.xp -= 1
-            st.session_state.random_pool = random.sample(ALL_RANDOM_TASKS, 5)
-            st.toast("正在重新扫描任务脉冲...", icon="📡")
-            time.sleep(0.5)
-            st.rerun()
-        else:
-            st.error("积分不足！")
-
-    for i, (task, score) in enumerate(st.session_state.random_pool):
-        col1, col2 = st.columns([3, 1])
-        is_done = task in st.session_state.done_tasks
-        if is_done:
-            col1.write(f"✅ ~~{task}~~ (+{score})")
-            col2.button("已完", key=f"rand_done_{i}", disabled=True)
-        else:
-            col1.write(f"🔹 {task} (+{score}XP)")
-            if col2.button("领赏", key=f"rand_{i}"):
+    with right_col:
+        st.markdown("### 🎲 随机挑战")
+        for i, (task, score) in enumerate(st.session_state.random_pool):
+            is_done = task in st.session_state.done_tasks
+            if st.button(f"{'✅' if is_done else '🔹'} {task} +{score}", key=f"r_{i}", use_container_width=True, disabled=is_done):
                 if st.session_state.daily_xp + score <= 10:
                     st.session_state.xp += score
                     st.session_state.daily_xp += score
                     st.session_state.done_tasks.append(task)
-                    st.balloons()
+                    st.session_state.task_counts[task] = st.session_state.task_counts.get(task, 0) + 1
                     st.rerun()
-                else:
-                    st.warning("今日经验已达 10 分上限！")
+        
+        if st.button("🔄 刷新任务 (-1 XP)", use_container_width=True):
+            if st.session_state.xp >= 1:
+                st.session_state.xp -= 1
+                st.session_state.random_pool = random.sample(ALL_RANDOM_TASKS, 5)
+                st.rerun()
 
 with tab2:
-    st.subheader("成就奖章")
-    # 这里可以根据 xp 动态显示
-    ach_list = [
-        ("🌱 初觉醒", "累计 10 XP", 10),
-        ("🔥 燃魂者", "累计 100 XP", 100),
-        ("💎 秩序主教", "累计 500 XP", 500)
-    ]
-    for name, desc, req in ach_list:
-        if st.session_state.xp >= req:
-            st.success(f"👑 **{name}** - {desc} (已达成)")
-        else:
-            st.write(f"🔒 **{name}** - {desc} (需要 {req} XP)")
+    st.markdown("### 🏅 里程碑")
+    # 次数成就
+    for t_name, count in st.session_state.task_counts.items():
+        if count >= 10: st.success(f"🏆 {t_name}达人: 已完成{count}次 (奖励+10已入账)")
+    
+    # XP 成就
+    ach_list = [("🌱 觉醒", 10), ("🔥 燃魂", 100), ("💎 领主", 500)]
+    for name, req in ach_list:
+        if st.session_state.xp >= req: st.success(f"👑 {name}: 累计 {req} XP")
+        else: st.info(f"🔒 {name}: 目标 {req} XP")
 
 with tab3:
-    st.subheader("积分兑换")
-    st.metric("可用 QP", st.session_state.xp)
-    
-    cost = 20
-    if st.button(f"🧧 消耗 {cost} XP 抽取现实奖励"):
-        if st.session_state.xp >= cost:
-            rewards = ["点一份好吃的晚餐", "看一部喜欢的电影", "奖励一段纯粹的玩游戏时间", "买一个想买很久的小玩意"]
-            res = random.choice(rewards)
-            st.balloons()
-            st.session_state.xp -= cost
-            st.success(f"抽取结果：【{res}】")
+    st.markdown("### 🎰 抽奖中心 (期望值之选)")
+    if st.button(f"🧧 消耗 20 XP 抽取随机奖励", use_container_width=True):
+        if st.session_state.xp >= 20:
+            st.session_state.xp -= 20
+            dice = random.random()
+            if dice < 0.15: 
+                res = random.choice(BIG_REWARDS)
+                st.balloons(); st.success(f"🔥 大奖!! 【{res}】")
+            elif dice < 0.7: 
+                res = random.choice(SMALL_REWARDS)
+                st.info(f"🍃 小奖：【{res}】")
+            else: st.warning("🕸️ 轮空：系统未检测到奖励信号")
             st.rerun()
-        else:
-            st.error("QP 余额不足！")
+    
+    st.markdown("### 🏛️ 必中兑换 (昂贵但稳定)")
+    for res in BIG_REWARDS:
+        cost = 60 # 兑换统一价格
+        if st.button(f"购入 {res} ({cost} XP)", use_container_width=True):
+            if st.session_state.xp >= cost:
+                st.session_state.xp -= cost
+                st.success(f"已解锁：{res}")
+                st.rerun()
