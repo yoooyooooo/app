@@ -28,7 +28,7 @@ RANDOM_TASKS_POOL = [
 ALL_SCORES = {**BASE_TASKS, **dict(RANDOM_TASKS_POOL)}
 
 # 成就阶梯: (次数阈值, 奖励倍数)
-MILESTONE_STEPS = [(1, 1), (3, 2), (10, 3), (20, 5)]
+
 
 CHEAP_REWARDS = {"玩10min手机": 5, "吃颗喜欢的糖": 5, "听3首歌": 8, "看一集短剧": 12, "喝杯好喝的": 15}
 BIG_REWARDS = {"顶级烹饪大餐": 60, "专业全身按摩": 70, "微醺酒精时光": 45, "参加沙龙聚会": 55, "买一本新书": 50}
@@ -139,25 +139,57 @@ with tab1:
                 st.session_state.random_pool = random.sample(RANDOM_TASKS_POOL, 5)
                 st.rerun()
 
+# --- 在 Tab 2: 成就阶梯 中替换 ---
 with tab2:
-    st.markdown("### 📈 熟练度里程碑 (成就分不受10分限制)")
-    for t_name, count in st.session_state.task_counts.items():
-        curr_step = st.session_state.claimed_milestones.get(t_name, -1)
-        next_step = curr_step + 1
-        if next_step < len(MILESTONE_STEPS):
-            target, mult = MILESTONE_STEPS[next_step]
-            reward = ALL_SCORES.get(t_name, 1) * mult
-            c1, c2 = st.columns([3, 1])
-            c1.write(f"**{t_name}** | 进度: `{count}/{target}`")
-            if count >= target:
-                if c2.button(f"领取 +{reward}", key=f"m_{t_name}_{next_step}", use_container_width=True):
-                    st.session_state.xp += reward
-                    st.session_state.claimed_milestones[t_name] = next_step
-                    st.toast(f"成就达成！获得 {reward} XP", icon="⭐")
-                    st.rerun()
-            else:
-                c2.button(f"+{reward}XP", disabled=True, key=f"l_{t_name}_{next_step}", use_container_width=True)
+    # --- 1. 动态连登算法 ---
+    st.markdown("### 📅 进化序列 (连登奖励)")
+    st.write(f"当前连登：`{st.session_state.streak}` 天")
+    
+    # 定义一个简单的算法：每 7 天为一个阶段
+    # 只要是没领过的天数，都可以领一次：奖励 = 天数 * 2
+    if 'claimed_streaks' not in st.session_state:
+        st.session_state.claimed_streaks = []
 
+    # 只要天数 > 0 且今天还没领过连登奖
+    if st.session_state.streak not in st.session_state.claimed_streaks:
+        # 逢 7 倍数大奖，否则普奖
+        is_week = st.session_state.streak % 7 == 0
+        bonus = st.session_state.streak * (5 if is_week else 2)
+        
+        if st.button(f"领取第 {st.session_state.streak} 天连登奖励：+{bonus} XP", type="primary"):
+            st.session_state.xp += bonus
+            st.session_state.claimed_streaks.append(st.session_state.streak)
+            st.toast(f"坚持的力量！获得 {bonus} XP")
+            st.rerun()
+    else:
+        st.info("今日连登奖励已领取，明天继续保持！")
+
+    st.markdown("---")
+
+    # --- 2. 动态熟练度算法 ---
+    st.markdown("### 🛠️ 技能专精 (每10次进化一级)")
+    for t_name, count in st.session_state.task_counts.items():
+        # 计算当前等级：0-9次是0级，10-19是1级...
+        current_level = count // 10
+        
+        # 记录每个任务领到了几级
+        if 'claimed_levels' not in st.session_state:
+            st.session_state.claimed_levels = {} # {任务名: 已领最高等级}
+        
+        last_level = st.session_state.claimed_levels.get(t_name, -1)
+        
+        if current_level > last_level:
+            base_score = ALL_SCORES.get(t_name, 1)
+            # 算法：等级越高，奖金越厚
+            level_reward = base_score * (current_level + 1) * 5 
+            
+            c1, c2 = st.columns([3, 1])
+            c1.write(f"**{t_name}** 已达成 LV.{current_level}！(累计 {count} 次)")
+            if c2.button(f"晋升奖励 +{level_reward}", key=f"lvl_{t_name}_{current_level}"):
+                st.session_state.xp += level_reward
+                st.session_state.claimed_levels[t_name] = current_level
+                st.success(f"{t_name} 进化！获得 {level_reward} XP")
+                st.rerun()
 with tab3:
     st.markdown("### 🎫 微奖励")
     c1, c2 = st.columns(2)
