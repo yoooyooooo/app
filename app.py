@@ -174,29 +174,47 @@ with tab3:
             else:
                 st.error("余额不足")
 
-    st.markdown("---")
-    st.markdown("### 🎰 混沌抽奖 (20 XP)")
-    if st.button("🧧 消耗 20 XP 启动概率脉冲", use_container_width=True):
-        if st.session_state.xp >= 20:
-            st.session_state.xp -= 20
-            dice = random.random()
-            # 概率: 大奖 10% | 小奖 75% | 自由发挥 10% | 轮空 5%
-            if dice < 0.75:
-                res = random.choice(list(CHEAP_REWARDS.keys()))
-                st.info(f"🍃 抽取结果：【小奖 - {res}】")
-                st.toast(f"中奖反馈：获得 {res}", icon="✔️")
-            elif dice < 0.85:
-                res = random.choice(list(BIG_REWARDS.keys()))
-                st.balloons()
-                st.success(f"🔥 抽取结果：【大奖 - {res}！】")
-                st.toast(f"极稀有奖项已解锁！", icon="👑")
-            elif dice < 0.95:
-                st.warning("✨ 自由发挥：去做一件让你快乐的随机小事吧！")
-            else:
-                st.error("🕸️ 轮空：未命中奖励信号。")
-            st.rerun()
-        else:
-            st.error("XP 不足，无法抽奖")
+    # --- 抽奖中心逻辑块 ---
+st.markdown("---")
+st.markdown("### 🎰 混沌抽奖 (20 XP)")
+
+if st.button("🧧 消耗 20 XP 启动概率脉冲", use_container_width=True):
+    # 1. 第一步：检查余额
+    if st.session_state.xp >= 20:
+        # 2. 第二步：扣除 XP
+        st.session_state.xp -= 20
+        
+        # 3. 第三步：摇骰子 (0.0 到 1.0)
+        dice = random.random()
+        
+        # 4. 第四步：概率判定
+        # [概率分布: 大奖 10%, 小奖 75%, 自由发挥 10%, 轮空 5%]
+        if dice < 0.75:  # 0.0 ~ 0.75 (75% 概率)
+            prize_name = random.choice(list(CHEAP_REWARDS.keys()))
+            st.info(f"🍃 抽取结果：【小奖 - {prize_name}】")
+            st.toast(f"中奖反馈：获得 {prize_name}", icon="✔️")
+            
+        elif dice < 0.85:  # 0.75 ~ 0.85 (10% 概率)
+            prize_name = random.choice(list(BIG_REWARDS.keys()))
+            st.balloons() # 全屏彩带庆祝
+            st.success(f"🔥 抽取结果：【大奖 - {prize_name}！】")
+            st.toast(f"极稀有奖项已解锁！", icon="👑")
+            
+        elif dice < 0.95:  # 0.85 ~ 0.95 (10% 概率)
+            st.warning("✨ 自由发挥：去做一件让你快乐的随机小事吧！")
+            st.toast("系统判定：自由行动模式", icon="🎨")
+            
+        else:  # 0.95 ~ 1.0 (5% 概率)
+            st.error("🕸️ 轮空：未命中奖励信号。")
+            st.toast("抽取失败，下次好运", icon="💀")
+            
+        # 5. 第五步：强制刷新页面，让顶部的 TOTAL_QP 跟着变
+        st.rerun()
+        
+    else:
+        # 余额不足的反馈
+        st.error("XP 不足，无法抽奖。快去完成任务攒分吧！")
+        st.toast("余额不足", icon="❌")
 
     st.markdown("---")
     with st.expander("🏛️ 秘密宝库 (高阶保底兑换)"):
