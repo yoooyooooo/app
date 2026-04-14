@@ -5,11 +5,9 @@ import json
 import os
 
 # ====================== 【持久化函数】 ======================
-# 数据文件路径
 DATA_FILE = "vibequest_data.json"
 
 def save_all_data():
-    """保存所有 session_state 到文件"""
     data = {
         "xp": st.session_state.xp,
         "daily_xp": st.session_state.daily_xp,
@@ -30,7 +28,6 @@ def save_all_data():
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def load_all_data():
-    """从文件加载数据"""
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -49,7 +46,6 @@ def load_all_data():
         st.session_state.claimed_levels = data.get("claimed_levels", {})
         st.session_state.redeem_msg = data.get("redeem_msg", None)
 
-        # 日期格式修复
         last_date_str = data.get("last_date")
         if last_date_str:
             try:
@@ -62,7 +58,6 @@ def load_all_data():
         init_default_state()
 
 def init_default_state():
-    """初始化默认数据"""
     st.session_state.xp = 0
     st.session_state.daily_xp = 0
     st.session_state.done_tasks = []
@@ -80,7 +75,7 @@ def init_default_state():
 
 # ============================================================
 
-# --- 1. 页面配置与赛博风格 CSS ---
+# --- 1. 页面配置 ---
 st.set_page_config(page_title="VibeQuest: 进化终端", page_icon="💊", layout="wide")
 
 st.markdown("""
@@ -107,7 +102,7 @@ ALL_SCORES = {**BASE_TASKS, **dict(RANDOM_TASKS_POOL)}
 CHEAP_REWARDS = {"玩10min手机": 5, "吃颗喜欢的糖": 5, "听3首歌": 8, "看一集短剧": 12, "喝杯好喝的": 15}
 BIG_REWARDS = {"顶级烹饪大餐": 60, "专业全身按摩": 70, "微醺酒精时光": 45, "参加沙龙聚会": 55, "买一本新书": 50}
 
-# --- 3. 加载数据（关键！） ---
+# --- 3. 加载数据 ---
 load_all_data()
 
 # --- 4. 每日重置 ---
@@ -133,7 +128,6 @@ if st.session_state.last_date < today:
     st.session_state.daily_bonus_claimed = False
     save_all_data()
 
-# 登录逻辑
 if not st.session_state.logged_in:
     gain = 1 if st.session_state.daily_xp < 10 else 0
     st.session_state.xp += gain
@@ -181,7 +175,7 @@ if is_full:
         st.info("💡 今日任务已达成，额外奖励已入账。")
 
 # --- 标签页 ---
-tab1, tab2, tab3 = st.tabs(["🎯 任务中心", "🏆 成就阶梯", "🎁 秘密商店"])
+tab1, tab2, tab3, tab4 = st.tabs(["🎯 任务中心", "🏆 成就阶梯", "🎁 秘密商店", "⚙️ 设置"])
 
 with tab1:
     l, r = st.columns(2)
@@ -324,3 +318,27 @@ with tab3:
                     st.rerun()
                 else:
                     st.error("XP不足")
+
+# --- 【新增：设置页 + 重置按钮】 ---
+with tab4:
+    st.markdown("### ⚙️ 系统设置")
+    st.markdown("#### 🗑️ 数据管理")
+    st.warning("⚠️ 重置后所有数据（XP、等级、连登、任务历史）将永久删除，无法恢复！")
+    
+    col1, col2 = st.columns([3,1])
+    with col1:
+        confirm_reset = st.checkbox("我已确认，要彻底重置所有数据")
+    with col2:
+        if st.button("执行重置", type="secondary", use_container_width=True, disabled=not confirm_reset):
+            # 删除数据文件
+            if os.path.exists(DATA_FILE):
+                os.remove(DATA_FILE)
+            # 清空 session
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.success("✅ 系统已重置！页面即将重启...")
+            st.rerun()
+    
+    st.markdown("---")
+    st.markdown("#### ℹ️ 关于")
+    st.info("VibeQuest OS v1.0\n赛博朋克风格每日自律进化系统")
