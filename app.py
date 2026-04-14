@@ -341,4 +341,4 @@ with tab4:
     
     st.markdown("---")
     st.markdown("#### ℹ️ 关于")
-    st.info("VibeQuest OS v1.0\n赛博朋克风格每日自律进化系统")
+    st.info("VibeQuest OS v1.0\n三倍厚多巴胺")
