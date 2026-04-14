@@ -106,7 +106,7 @@ BIG_REWARDS = {"顶级烹饪大餐": 60, "专业全身按摩": 70, "微醺酒精
 load_all_data()
 
 # --- 4. 每日重置 ---
-today = datetime.now().date()
+today = datetime.now().date() + timedelta(days=1)
 if 'last_date' not in st.session_state:
     st.session_state.last_date = today
 
